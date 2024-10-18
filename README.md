@@ -15,7 +15,7 @@ Go service which handles the backend of ANCHOR - Bike Locking Service
 
    ```sh
    git clone https://github.com/eevanwong/anchor-backend.git
-   cd your_project_name
+   cd anchor-backend
    ```
 
 2. **Install dependencies**:
