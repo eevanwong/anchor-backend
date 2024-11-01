@@ -4,22 +4,21 @@ import (
 	"anchor-backend/models"
 	"encoding/json"
 	"net/http"
-	"regexp"
 
 	"gorm.io/gorm"
 )
 
 type LockRequest struct {
-	RackID      string `json:"rack_id"`
-	UserID      string `json:"user_id"`
-	UserName    string `json:"user_name"`
-	UserContact string `json:"user_contact"`
+	RackID    uint   `json:"rack_id"`
+	UserName  string `json:"user_name"`
+	UserEmail string `json:"user_email"`
+	UserPhone string `json:"user_phone"`
 }
 
 type LockResponse struct {
-	RackID      string `json:"rack_id"`
-	UserID      string `json:"user_id"`
-	LockSuccess bool   `json:"lock_success"`
+	RackID      uint `json:"rack_id"`
+	UserID      uint `json:"user_id"`
+	LockSuccess bool `json:"lock_success"`
 }
 
 func LockHandler(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
@@ -32,8 +31,8 @@ func LockHandler(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 		return
 	}
 
-	if req.RackID == "" || req.UserID == "" {
-		http.Error(w, "POST Lock: Missing rack_id and/or user_id", http.StatusBadRequest)
+	if req.RackID == 0 || req.UserName == "" || req.UserEmail == "" || req.UserPhone == "" {
+		http.Error(w, "POST Lock: Missing field in request body", http.StatusBadRequest)
 		return
 	}
 
@@ -54,7 +53,7 @@ func LockHandler(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 	}
 
 	// Create a new user if necessary.
-	user, err := createUser(db, req.UserName, req.UserContact)
+	user, err := createUser(db, req.UserName, req.UserEmail, req.UserPhone)
 	if err != nil {
 		http.Error(w, "POST Lock: Failed to verify user", http.StatusInternalServerError)
 		return
@@ -68,8 +67,8 @@ func LockHandler(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 	}
 
 	response := LockResponse{
-		RackID:      req.RackID,
-		UserID:      req.UserID,
+		RackID:      rack.ID,
+		UserID:      user.ID,
 		LockSuccess: true,
 	}
 
@@ -78,50 +77,26 @@ func LockHandler(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 	json.NewEncoder(w).Encode(response)
 }
 
-func createUser(db *gorm.DB, userName string, userContact string) (*models.User, error) {
+func createUser(db *gorm.DB, userName string, userEmail string, userPhone string) (*models.User, error) {
 	// Check if user exists and/or is occupied.
 	var user models.User
-	res := db.Where("name = ?", userName).First(&user)
+	res := db.Where("name = ?", userName).Where("email = ?", userEmail).Where("phone = ?", userPhone).First(&user)
 	if res.Error != nil && res.Error != gorm.ErrRecordNotFound {
 		return nil, res.Error
 	}
 	if res.Error == nil {
 		return &user, nil
 	}
-
-	contactType := "unknown"
-	if isEmail(userContact) {
-		contactType = "phone"
-	} else if isPhoneNumber(userContact) {
-		contactType = "email"
-	}
 	newUser := models.User{
-		Name:        userName,
-		Contact:     userContact,
-		ContactType: contactType,
+		Name:  userName,
+		Email: userEmail,
+		Phone: userPhone,
 	}
 
+	// Create new user.
 	if err := db.Create(&newUser).Error; err != nil {
 		return nil, err
 	}
 
 	return &newUser, nil
-}
-
-func isEmail(s string) bool {
-	emailRegex := `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`
-	re := regexp.MustCompile(emailRegex)
-	return re.MatchString(s)
-}
-
-func isPhoneNumber(s string) bool {
-	phoneRegex := `^\+?[0-9]{1,3}?[-. ]?[0-9]{1,4}[-. ]?[0-9]{1,4}[-. ]?[0-9]{1,9}$`
-	re := regexp.MustCompile(phoneRegex)
-	return re.MatchString(s)
-}
-
-func jsonResponse(w http.ResponseWriter, data interface{}, statusCode int) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(data)
 }

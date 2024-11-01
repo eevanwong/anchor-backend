@@ -16,9 +16,9 @@ type Model struct {
 // Define your models
 type User struct {
 	gorm.Model
-	Name        string `gorm:"<-"`
-	Contact     string `gorm:"<-"`
-	ContactType string `gorm:"<-"`
+	Name  string `gorm:"<-"`
+	Email string `gorm:"<-"`
+	Phone string `gorm:"<-"`
 }
 
 type Rack struct {

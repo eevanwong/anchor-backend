@@ -20,6 +20,14 @@ func MigrateAndSeedDatabase() (*gorm.DB, error) {
 		return nil, err
 	}
 
+	// Drop existing tables
+	err = db.Migrator().DropTable(&models.User{}, &models.Rack{})
+	if err != nil {
+		log.Fatal("Failed to drop existing tables: ", err)
+		return nil, err
+	}
+	fmt.Println("Existing tables dropped successfully!")
+
 	// Migrate the schema
 	err = db.AutoMigrate(&models.User{}, &models.Rack{})
 	if err != nil {
@@ -41,8 +49,8 @@ func seedDatabase(db *gorm.DB) {
 	if count == 0 {
 		// Seed with initial users
 		users := []models.User{
-			{Name: "John Doe", Contact: "john@example.com", ContactType: "email"},
-			{Name: "Jane Smith", Contact: "9059059050", ContactType: "phone"},
+			{Name: "John Doe", Email: "john@example.com", Phone: "9059059050"},
+			{Name: "Jane Smith", Email: "jane@example.com", Phone: "9059059051"},
 		}
 
 		racks := []models.Rack{
