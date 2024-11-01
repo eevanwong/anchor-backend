@@ -33,27 +33,30 @@ Go service which handles the backend of ANCHOR - Bike Locking Service
 4. **Check the server**:
    Open your browser and navigate to `http://localhost:8080`. You should see a message indicating that the server is running.
 
-### Setup Database
+### Run Service
 
 This assumes docker is already setup on the system. Install the docker vscode extension.
 
-1. **Setup Docker Container**
-
 ```sh
-docker-compose up
+docker-compose build --no-cache && docker-compose up
 ```
 
-2. **Run Migrations and Seed Database**
+### Testing
+
+**Connect to the database**
 
 ```sh
-go run ./database/db_setup.go
-```
-
-3. **(Optional) Check the database**
-   Via the Docker tab on vscode, attach the shell of the postgres dev_db to the CLI and run:
-
-```sh
+docker exec -it anchor-backend-dev-db-1 bash
 psql -U docker
 ```
+- Then run `\dt` to see the current schema and check changes.
 
-Then run `\dt` to see the current schema and check changes.
+**Sample Endpoint**
+
+```sh
+curl -X POST http://localhost:8080/api/lock \
+     -H "Content-Type: application/json" \
+     -d '{"rack_id":1, "user_name":"John Doe", "user_email":"johndoe@gmail.com", "user_phone":"1234561234"}'
+```
+
+
