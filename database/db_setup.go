@@ -1,66 +1,59 @@
-package main
+package database
 
 import (
 	"fmt"
 	"log"
 
+	"anchor-backend/models"
+
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-/*
-// gorm.Model definition -> built in
-type Model struct {
-  ID        uint           `gorm:"primaryKey"` <- auto increments from 1
-  CreatedAt time.Time
-  UpdatedAt time.Time
-  DeletedAt gorm.DeletedAt `gorm:"index"`
-}
-*/
-// Define your models
-type User struct {
-	gorm.Model
-	Name  string
-	Email string
-}
-
-type Rack struct {
-	gorm.Model
-	CurrUserID uint
-}
-
 // https://gorm.io/docs/connecting_to_the_database.html#PostgreSQL
-func main() {
+func MigrateAndSeedDatabase() (*gorm.DB, error) {
 	// Initialize and migrate the database
-	dsn := "host=localhost user=docker password=docker dbname=docker port=5434 sslmode=disable TimeZone=UTC"
+	dsn := "host=anchor-backend-dev-db-1 user=docker password=docker dbname=docker port=5432 sslmode=disable TimeZone=UTC"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("Failed to connect to database: ", err)
+		return nil, err
 	}
 
+	// Drop existing tables
+	err = db.Migrator().DropTable(&models.User{}, &models.Rack{})
+	if err != nil {
+		log.Fatal("Failed to drop existing tables: ", err)
+		return nil, err
+	}
+	fmt.Println("Existing tables dropped successfully!")
+
 	// Migrate the schema
-	err = db.AutoMigrate(&User{}, &Rack{})
+	err = db.AutoMigrate(&models.User{}, &models.Rack{})
 	if err != nil {
 		log.Fatal("Failed to migrate database schema: ", err)
+		return nil, err
 	}
 	fmt.Println("Database migrated successfully!")
 
 	// Seed the database
 	seedDatabase(db)
+
+	return db, nil
 }
 
 // Seed function
 func seedDatabase(db *gorm.DB) {
 	var count int64
-	db.Model(&User{}).Count(&count)
+	db.Model(&models.User{}).Count(&count)
 	if count == 0 {
 		// Seed with initial users
-		users := []User{
-			{Name: "John Doe", Email: "john@example.com"},
-			{Name: "Jane Smith", Email: "jane@example.com"},
+		users := []models.User{
+			{Name: "John Doe", Email: "john@example.com", Phone: "9059059050"},
+			{Name: "Jane Smith", Email: "jane@example.com", Phone: "9059059051"},
 		}
 
-		racks := []Rack{
+		racks := []models.Rack{
 			{CurrUserID: 1},
 			{CurrUserID: 2},
 		}
@@ -78,4 +71,3 @@ func seedDatabase(db *gorm.DB) {
 		fmt.Println("Database already seeded!")
 	}
 }
-

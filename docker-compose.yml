@@ -8,3 +8,18 @@ services:
       POSTGRES_DB: docker
     ports:
       - 5434:5432
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "docker"]
+      interval: 2s
+      timeout: 5s
+      retries: 5
+
+  go-app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      SERVER_PORT: 8080
+    depends_on:
+      dev-db:
+        condition: service_healthy
