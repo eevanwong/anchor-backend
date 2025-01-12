@@ -2,8 +2,14 @@ package handlers
 
 import (
 	"anchor-backend/models"
+	"crypto/aes"
+	"crypto/cipher"
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
+	"log"
 	"net/http"
+	"strings"
 
 	"gorm.io/gorm"
 )
@@ -34,13 +40,75 @@ type UnlockResponse struct {
 	UnlockSuccess bool `json:"unlock_success"`
 }
 
+func decryptData(encryptedData string, ivBase64 string, aesKey []byte) (string, error) {
+	iv, err := base64.StdEncoding.DecodeString(ivBase64)
+	if err != nil {
+		return "", fmt.Errorf("failed to decode IV: %v", err)
+	}
+
+	encrypted, err := base64.StdEncoding.DecodeString(encryptedData)
+	if err != nil {
+		return "", fmt.Errorf("failed to decode encrypted data: %v", err)
+	}
+
+	block, err := aes.NewCipher(aesKey)
+	if err != nil {
+		return "", fmt.Errorf("failed to create cipher: %v", err)
+	}
+
+	decrypted := make([]byte, len(encrypted))
+	mode := cipher.NewCBCDecrypter(block, iv)
+	mode.CryptBlocks(decrypted, encrypted)
+
+	decrypted, err = unpad(decrypted)
+	if err != nil {
+		return "", fmt.Errorf("failed to unpad decrypted data: %v", err)
+	}
+
+	return string(decrypted), nil
+}
+
+func unpad(data []byte) ([]byte, error) {
+	padding := data[len(data)-1]
+	if int(padding) > len(data) {
+		return nil, fmt.Errorf("invalid padding size")
+	}
+	return data[:len(data)-int(padding)], nil
+}
+
 func LockHandler(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 	var req LockRequest
 
-	// Handle request body.
-	err := json.NewDecoder(r.Body).Decode(&req)
+	// Decrypt data.
+	aesKey := []byte("12345678901234567890123456789012")
+	var requestBody struct {
+		Data string `json:"data"`
+	}
+	err := json.NewDecoder(r.Body).Decode(&requestBody)
 	if err != nil {
-		http.Error(w, "POST Lock: Invalid request payload", http.StatusBadRequest)
+		http.Error(w, "POST Lock: Invalid JSON in request body", http.StatusBadRequest)
+		return
+	}
+
+	requestSections := strings.Split(string(requestBody.Data), ":")
+	if len(requestSections) != 2 {
+		http.Error(w, "POST Lock: Incorrect section count in request payload", http.StatusBadRequest)
+		return
+	}
+
+	ivBase64 := requestSections[0]
+	encryptedData := requestSections[1]
+	decrypted, err := decryptData(encryptedData, ivBase64, aesKey)
+	if err != nil {
+		http.Error(w, "POST Lock: Invalid encryption of request payload", http.StatusBadRequest)
+		return
+	}
+	log.Printf("Decrypted data: %s", decrypted)
+
+	// Decode decrypted JSON.
+	err = json.Unmarshal([]byte(decrypted), &req)
+	if err != nil {
+		http.Error(w, "POST Lock: Invalid JSON in decrypted payload", http.StatusBadRequest)
 		return
 	}
 
@@ -92,10 +160,36 @@ func LockHandler(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 func UnlockHandler(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 	var req UnlockRequest
 
-	// Handle request body.
-	err := json.NewDecoder(r.Body).Decode(&req)
+	// Decrypt data.
+	aesKey := []byte("12345678901234567890123456789012")
+	var requestBody struct {
+		Data string `json:"data"`
+	}
+	err := json.NewDecoder(r.Body).Decode(&requestBody)
 	if err != nil {
-		http.Error(w, "POST Unlock: Invalid request payload", http.StatusBadRequest)
+		http.Error(w, "POST Unlock: Invalid JSON in request body", http.StatusBadRequest)
+		return
+	}
+
+	requestSections := strings.Split(string(requestBody.Data), ":")
+	if len(requestSections) != 2 {
+		http.Error(w, "POST Unlock: Incorrect section count in request payload", http.StatusBadRequest)
+		return
+	}
+
+	ivBase64 := requestSections[0]
+	encryptedData := requestSections[1]
+	decrypted, err := decryptData(encryptedData, ivBase64, aesKey)
+	if err != nil {
+		http.Error(w, "POST Unlock: Invalid encryption of request payload", http.StatusBadRequest)
+		return
+	}
+	log.Printf("Decrypted data: %s", decrypted)
+
+	// Decode decrypted JSON.
+	err = json.Unmarshal([]byte(decrypted), &req)
+	if err != nil {
+		http.Error(w, "POST Unlock: Invalid JSON in decrypted payload", http.StatusBadRequest)
 		return
 	}
 
@@ -127,8 +221,6 @@ func UnlockHandler(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 		http.Error(w, "POST Unlock: Failed to authenticate user", http.StatusBadRequest)
 		return
 	}
-
-	// TODO: 2FA if time and scope permits.
 
 	// Update rack occupancy.
 	res := db.Model(&models.Rack{}).Where("id = ?", rack.ID).Update("curr_user_id", nil)
