@@ -2,6 +2,8 @@
 
 Go service which handles the backend of ANCHOR - Bike Locking Service
 
+PN532 + ESP32 Service Repository [here](https://github.com/eevanwong/anchor-arduino)
+
 ## Quickstart Guide
 
 ### Prerequisites
