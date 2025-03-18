@@ -223,7 +223,7 @@ func UnlockHandler(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 	}
 
 	// Update rack occupancy.
-	res := db.Model(&models.Rack{}).Where("id = ?", rack.ID).Update("curr_user_id", nil)
+	res := db.Model(&models.Rack{}).Where("id = ?", rack.ID).Update("curr_user_id", 0)
 	if res.Error != nil || res.RowsAffected == 0 {
 		http.Error(w, "POST Unlock: Failed updating rack in DB", http.StatusInternalServerError)
 		return
