@@ -40,6 +40,19 @@ type UnlockResponse struct {
 	UnlockSuccess bool `json:"unlock_success"`
 }
 
+type GetRacksResponse struct {
+	Racks []RackDetails `json:"rack_details"`
+}
+
+type RackDetails struct {
+	RackID      uint   `json:"rack_id"`
+	UserID      uint   `json:"user_id"`
+	UserName    string `json:"user_name"`
+	UserEmail   string `json:"user_email"`
+	UserPhone   string `json:"user_phone"`
+	LastUpdated string `json:"last_updated"`
+}
+
 func decryptData(encryptedData string, ivBase64 string, aesKey []byte) (string, error) {
 	iv, err := base64.StdEncoding.DecodeString(ivBase64)
 	if err != nil {
@@ -77,7 +90,7 @@ func unpad(data []byte) ([]byte, error) {
 }
 
 func LockHandler(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
-	var req LockRequest
+	var req = LockRequest{RackID: 1, UserName: "Erick", UserEmail: "erick@gmail.com", UserPhone: "1231231234"}
 
 	// Decrypt data.
 	aesKey := []byte("12345678901234567890123456789012")
@@ -146,6 +159,8 @@ func LockHandler(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 		return
 	}
 
+	NotifyWebSocketClients(fmt.Sprintf("{\"rack_id\": %d, \"user_id\": %d, \"user_name\": \"%s\", \"user_email\": \"%s\", \"user_phone\": \"%s\", \"last_updated\": \"%s\", \"action\": \"lock\"}", rack.ID, user.ID, user.Name, user.Email, user.Phone, rack.UpdatedAt.Format("2006-01-02 15:04:05")))
+
 	response := LockResponse{
 		RackID:      rack.ID,
 		UserID:      user.ID,
@@ -158,7 +173,7 @@ func LockHandler(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 }
 
 func UnlockHandler(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
-	var req UnlockRequest
+	var req = UnlockRequest{RackID: 1, UserName: "Erick", UserEmail: "erick@gmail.com", UserPhone: "1231231234"}
 
 	// Decrypt data.
 	aesKey := []byte("12345678901234567890123456789012")
@@ -229,6 +244,8 @@ func UnlockHandler(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 		return
 	}
 
+	NotifyWebSocketClients(fmt.Sprintf("{\"rack_id\": %d, \"user_id\": %d, \"user_name\": \"\", \"user_email\": \"\", \"user_phone\": \"\", \"updated_at\": \"\", \"action\": \"unlock\"}", rack.ID, 0))
+
 	response := UnlockResponse{
 		RackID:        rack.ID,
 		UserID:        user.ID,
@@ -238,6 +255,41 @@ func UnlockHandler(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
+}
+
+// Fetch all racks to display on the frontend.
+func GetRacksHandler(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
+	var racks []models.Rack
+	if err := db.Find(&racks).Error; err != nil {
+		http.Error(w, "Failed to fetch racks", http.StatusInternalServerError)
+		return
+	}
+
+	var allRackDetails []RackDetails
+	for _, rack := range racks {
+		if rack.CurrUserID == 0 {
+			allRackDetails = append(allRackDetails, RackDetails{RackID: rack.ID})
+			continue
+		}
+		user, err := fetchUserByID(db, rack.CurrUserID)
+		if err != nil {
+			http.Error(w, "Get Racks: Failed to fetch user", http.StatusInternalServerError)
+			return
+		}
+		rackDetails := RackDetails{
+			RackID:      rack.ID,
+			UserID:      user.ID,
+			UserName:    user.Name,
+			UserEmail:   user.Email,
+			UserPhone:   user.Phone,
+			LastUpdated: rack.UpdatedAt.Format("2006-01-02 15:04:05"),
+		}
+		allRackDetails = append(allRackDetails, rackDetails)
+	}
+
+	var getRackResponse = GetRacksResponse{Racks: allRackDetails}
+
+	json.NewEncoder(w).Encode(getRackResponse)
 }
 
 func fetchUserByID(db *gorm.DB, userID uint) (*models.User, error) {
