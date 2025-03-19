@@ -7,9 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
-	"strings"
 
 	"gorm.io/gorm"
 )
@@ -53,6 +51,14 @@ type RackDetails struct {
 	LastUpdated string `json:"last_updated"`
 }
 
+type UnlockRequestForFrontend struct {
+	RackID uint `json:"rack_id"`
+}
+
+type UnlockResponseForFrontend struct {
+	UnlockSuccess bool `json:"unlock_success"`
+}
+
 func decryptData(encryptedData string, ivBase64 string, aesKey []byte) (string, error) {
 	iv, err := base64.StdEncoding.DecodeString(ivBase64)
 	if err != nil {
@@ -92,43 +98,43 @@ func unpad(data []byte) ([]byte, error) {
 func LockHandler(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 	var req = LockRequest{RackID: 1, UserName: "Erick", UserEmail: "erick@gmail.com", UserPhone: "1231231234"}
 
-	// Decrypt data.
-	aesKey := []byte("12345678901234567890123456789012")
-	var requestBody struct {
-		Data string `json:"data"`
-	}
-	err := json.NewDecoder(r.Body).Decode(&requestBody)
-	if err != nil {
-		http.Error(w, "POST Lock: Invalid JSON in request body", http.StatusBadRequest)
-		return
-	}
+	// // Decrypt data.
+	// aesKey := []byte("12345678901234567890123456789012")
+	// var requestBody struct {
+	// 	Data string `json:"data"`
+	// }
+	// err := json.NewDecoder(r.Body).Decode(&requestBody)
+	// if err != nil {
+	// 	http.Error(w, "POST Lock: Invalid JSON in request body", http.StatusBadRequest)
+	// 	return
+	// }
 
-	requestSections := strings.Split(string(requestBody.Data), ":")
-	if len(requestSections) != 2 {
-		http.Error(w, "POST Lock: Incorrect section count in request payload", http.StatusBadRequest)
-		return
-	}
+	// requestSections := strings.Split(string(requestBody.Data), ":")
+	// if len(requestSections) != 2 {
+	// 	http.Error(w, "POST Lock: Incorrect section count in request payload", http.StatusBadRequest)
+	// 	return
+	// }
 
-	ivBase64 := requestSections[0]
-	encryptedData := requestSections[1]
-	decrypted, err := decryptData(encryptedData, ivBase64, aesKey)
-	if err != nil {
-		http.Error(w, "POST Lock: Invalid encryption of request payload", http.StatusBadRequest)
-		return
-	}
-	log.Printf("Decrypted data: %s", decrypted)
+	// ivBase64 := requestSections[0]
+	// encryptedData := requestSections[1]
+	// decrypted, err := decryptData(encryptedData, ivBase64, aesKey)
+	// if err != nil {
+	// 	http.Error(w, "POST Lock: Invalid encryption of request payload", http.StatusBadRequest)
+	// 	return
+	// }
+	// log.Printf("Decrypted data: %s", decrypted)
 
-	// Decode decrypted JSON.
-	err = json.Unmarshal([]byte(decrypted), &req)
-	if err != nil {
-		http.Error(w, "POST Lock: Invalid JSON in decrypted payload", http.StatusBadRequest)
-		return
-	}
+	// // Decode decrypted JSON.
+	// err = json.Unmarshal([]byte(decrypted), &req)
+	// if err != nil {
+	// 	http.Error(w, "POST Lock: Invalid JSON in decrypted payload", http.StatusBadRequest)
+	// 	return
+	// }
 
-	if req.RackID == 0 || req.UserName == "" || req.UserEmail == "" || req.UserPhone == "" {
-		http.Error(w, "POST Lock: Missing field in request body", http.StatusBadRequest)
-		return
-	}
+	// if req.RackID == 0 || req.UserName == "" || req.UserEmail == "" || req.UserPhone == "" {
+	// 	http.Error(w, "POST Lock: Missing field in request body", http.StatusBadRequest)
+	// 	return
+	// }
 
 	// Fetch rack and check occupancy.
 	rack, err := fetchRackByID(db, req.RackID)
@@ -175,38 +181,38 @@ func LockHandler(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 func UnlockHandler(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 	var req = UnlockRequest{RackID: 1, UserName: "Erick", UserEmail: "erick@gmail.com", UserPhone: "1231231234"}
 
-	// Decrypt data.
-	aesKey := []byte("12345678901234567890123456789012")
-	var requestBody struct {
-		Data string `json:"data"`
-	}
-	err := json.NewDecoder(r.Body).Decode(&requestBody)
-	if err != nil {
-		http.Error(w, "POST Unlock: Invalid JSON in request body", http.StatusBadRequest)
-		return
-	}
+	// // Decrypt data.
+	// aesKey := []byte("12345678901234567890123456789012")
+	// var requestBody struct {
+	// 	Data string `json:"data"`
+	// }
+	// err := json.NewDecoder(r.Body).Decode(&requestBody)
+	// if err != nil {
+	// 	http.Error(w, "POST Unlock: Invalid JSON in request body", http.StatusBadRequest)
+	// 	return
+	// }
 
-	requestSections := strings.Split(string(requestBody.Data), ":")
-	if len(requestSections) != 2 {
-		http.Error(w, "POST Unlock: Incorrect section count in request payload", http.StatusBadRequest)
-		return
-	}
+	// requestSections := strings.Split(string(requestBody.Data), ":")
+	// if len(requestSections) != 2 {
+	// 	http.Error(w, "POST Unlock: Incorrect section count in request payload", http.StatusBadRequest)
+	// 	return
+	// }
 
-	ivBase64 := requestSections[0]
-	encryptedData := requestSections[1]
-	decrypted, err := decryptData(encryptedData, ivBase64, aesKey)
-	if err != nil {
-		http.Error(w, "POST Unlock: Invalid encryption of request payload", http.StatusBadRequest)
-		return
-	}
-	log.Printf("Decrypted data: %s", decrypted)
+	// ivBase64 := requestSections[0]
+	// encryptedData := requestSections[1]
+	// decrypted, err := decryptData(encryptedData, ivBase64, aesKey)
+	// if err != nil {
+	// 	http.Error(w, "POST Unlock: Invalid encryption of request payload", http.StatusBadRequest)
+	// 	return
+	// }
+	// log.Printf("Decrypted data: %s", decrypted)
 
-	// Decode decrypted JSON.
-	err = json.Unmarshal([]byte(decrypted), &req)
-	if err != nil {
-		http.Error(w, "POST Unlock: Invalid JSON in decrypted payload", http.StatusBadRequest)
-		return
-	}
+	// // Decode decrypted JSON.
+	// err = json.Unmarshal([]byte(decrypted), &req)
+	// if err != nil {
+	// 	http.Error(w, "POST Unlock: Invalid JSON in decrypted payload", http.StatusBadRequest)
+	// 	return
+	// }
 
 	if req.RackID == 0 || req.UserName == "" || req.UserEmail == "" || req.UserPhone == "" {
 		http.Error(w, "POST Unlock: Missing field in request body", http.StatusBadRequest)
@@ -290,6 +296,33 @@ func GetRacksHandler(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 	var getRackResponse = GetRacksResponse{Racks: allRackDetails}
 
 	json.NewEncoder(w).Encode(getRackResponse)
+}
+
+func UnlockHandlerForFrontend(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
+	var req UnlockRequestForFrontend
+
+	// Handle request body.
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		http.Error(w, "POST Unlock for Frontend: Invalid request payload", http.StatusBadRequest)
+		return
+	}
+
+	res := db.Model(&models.Rack{}).Where("id = ?", req.RackID).Update("curr_user_id", 0)
+	if res.Error != nil || res.RowsAffected == 0 {
+		http.Error(w, "POST Unlock for Frontend: Failed updating rack in DB", http.StatusInternalServerError)
+		return
+	}
+
+	NotifyWebSocketClients(fmt.Sprintf("{\"rack_id\": %d, \"user_id\": %d, \"user_name\": \"\", \"user_email\": \"\", \"user_phone\": \"\", \"updated_at\": \"\", \"action\": \"unlock\"}", req.RackID, 0))
+
+	response := UnlockResponseForFrontend{
+		UnlockSuccess: true,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
 }
 
 func fetchUserByID(db *gorm.DB, userID uint) (*models.User, error) {

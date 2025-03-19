@@ -38,6 +38,9 @@ func RegisterRoutes(db *gorm.DB) {
 	http.HandleFunc("/api/racks", corsMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		handlers.GetRacksHandler(w, r, db)
 	}))
+	http.HandleFunc("/api/unlock_frontend", corsMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		handlers.UnlockHandlerForFrontend(w, r, db)
+	}))
 
 	http.HandleFunc("/ws", wsHandler)
 }
