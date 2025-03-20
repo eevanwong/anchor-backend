@@ -13,7 +13,7 @@ import (
 // https://gorm.io/docs/connecting_to_the_database.html#PostgreSQL
 func MigrateAndSeedDatabase() (*gorm.DB, error) {
 	// Initialize and migrate the database
-	dsn := "host=anchor-backend_dev-db_1 user=docker password=docker dbname=docker port=5432 sslmode=disable TimeZone=UTC"
+	dsn := "host=anchor-backend-dev-db-1 user=docker password=docker dbname=docker port=5432 sslmode=disable TimeZone=UTC"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("Failed to connect to database: ", err)
@@ -52,12 +52,21 @@ func seedDatabase(db *gorm.DB) {
 			{Name: "John Doe", Email: "john@example.com", Phone: "9059059050"},
 			{Name: "Jane Smith", Email: "jane@example.com", Phone: "9059059051"},
 			{Name: "test", Email: "evan@gmail.com", Phone: "test"},
-
 		}
 
 		racks := []models.Rack{
 			{CurrUserID: 0},
-			{CurrUserID: 2},
+			{CurrUserID: 0},
+			{CurrUserID: 0},
+			{CurrUserID: 0},
+			{CurrUserID: 0},
+			{CurrUserID: 0},
+			{CurrUserID: 0},
+			{CurrUserID: 0},
+			{CurrUserID: 0},
+			{CurrUserID: 0},
+			{CurrUserID: 0},
+			{CurrUserID: 0},
 		}
 
 		for _, user := range users {
