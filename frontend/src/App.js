@@ -62,19 +62,19 @@ const App = () => {
   };
 
   const getCellStyles = (userId) => ({
-    color: userId !== 0 ? "white" : "#D3D3D3",
+    color: userId !== 0 ? "white" : "#353935",
     fontFamily: 'Courier New',
-    fontWeight: userId !== 0 ? "bold" : "normal",
-    backgroundColor: userId !== 0 ? "#555" : "transparent"
+    fontWeight: "bold",
+    backgroundColor: userId !== 0 ? "#778899" : "white"
   });
 
   return (
-    <Box sx={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center", minHeight: "100vh", backgroundColor: "#353935" }}>
+    <Box sx={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center", minHeight: "100vh", backgroundColor: "white" }}>
       <Box sx={{ display: "flex", alignItems: "center", gap: 2, marginBottom: 2, marginTop: 2 }}>
         <img src={logo} alt="Logo" style={{ height: 50 }} />
         <h1 style={{ color: "#CF9FFF", fontFamily: 'Courier New', fontWeight: "bolder" }}>Anchor Dashboard</h1>
       </Box>
-      <TableContainer component={Paper} sx={{ width: "80%", backgroundColor: "#353935", borderColor: "#CF9FFF", boxShadow: "0 0 10px #CF9FFF" }}>
+      <TableContainer component={Paper} sx={{ width: "80%", backgroundColor: "#353935", borderColor: "#CF9FFF", boxShadow: "0 0 10px #CF9FFF", marginBottom: 5 }}>
         <Table sx={{ minWidth: 650 }}>
           <TableHead>
             <TableRow>
